@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generador de QR — Fin-Silver</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f4f4;
+      --bg-soft: #eaeaea;
+      --card: #ffffff;
+      --text: #2a2a2a;
+      --text-light: #6b6b6b;
+      --text-muted: #999999;
+      --silver: #888888;
+      --silver-dark: #555555;
+      --border: rgba(0,0,0,0.08);
+      --shadow: rgba(0,0,0,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative; z-index: 1;
+      display: flex; justify-content: center; align-items: center;
+      padding: 28px 48px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo { display: flex; flex-direction: column; line-height: 1; align-items: center; }
+    .logo-fin { font-size: 28px; font-weight: 600; color: var(--text); letter-spacing: 4px; text-transform: uppercase; }
+    .logo-silver { font-size: 28px; font-weight: 300; color: var(--silver); letter-spacing: 6px; text-transform: uppercase; }
+
+    main {
+      position: relative; z-index: 1;
+      max-width: 640px; margin: 0 auto;
+      padding: 80px 24px 60px;
+    }
+
+    h1 { font-size: 40px; font-weight: 300; color: var(--text); text-align: center; letter-spacing: 3px; margin-bottom: 8px; }
+    h1 span { font-weight: 600; }
+    .subtitle { text-align: center; font-size: 14px; color: var(--text-muted); letter-spacing: 1.5px; margin-bottom: 56px; }
+
+    .input-group label {
+      display: block; font-size: 11px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 2px;
+      color: var(--text-light); margin-bottom: 10px;
+    }
+
+    .input-wrapper {
+      display: flex; border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border); background: var(--card);
+      box-shadow: 0 2px 12px var(--shadow);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .input-wrapper:focus-within { border-color: rgba(0,0,0,0.15); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+
+    input[type="text"] {
+      flex: 1; padding: 16px 20px; font-family: 'Outfit', sans-serif;
+      font-size: 15px; font-weight: 300; color: var(--text);
+      background: transparent; border: none; outline: none; letter-spacing: 0.5px;
+    }
+    input[type="text"]::placeholder { color: var(--text-muted); opacity: 0.7; }
+
+    .btn-generate {
+      padding: 16px 32px; font-family: 'Outfit', sans-serif;
+      font-size: 13px; font-weight: 500; letter-spacing: 2px;
+      text-transform: uppercase; color: #fff;
+      background: linear-gradient(135deg, var(--silver-dark), var(--silver));
+      border: none; cursor: pointer; transition: all 0.3s ease; white-space: nowrap;
+    }
+    .btn-generate:hover { background: linear-gradient(135deg, var(--text), var(--silver-dark)); }
+    .btn-generate:active { transform: scale(0.98); }
+
+    .qr-result {
+      display: none; flex-direction: column; align-items: center;
+      margin-top: 56px; animation: fadeUp 0.5s ease forwards;
+    }
+    .qr-result.visible { display: flex; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .qr-container {
+      background: var(--card); padding: 24px; border-radius: 16px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.1); margin-bottom: 28px;
+    }
+    .qr-container canvas { display: block; }
+
+    .qr-url-display {
+      font-size: 12px; color: var(--text-muted); letter-spacing: 0.5px;
+      margin-bottom: 28px; text-align: center; max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 20px;
+    }
+
+    .btn-download {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 36px; font-family: 'Outfit', sans-serif;
+      font-size: 13px; font-weight: 500; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--silver-dark);
+      background: transparent; border: 1px solid rgba(0,0,0,0.12);
+      border-radius: 10px; cursor: pointer; transition: all 0.3s ease;
+    }
+    .btn-download:hover { border-color: rgba(0,0,0,0.3); color: var(--text); background: rgba(0,0,0,0.02); }
+    .btn-download svg { width: 16px; height: 16px; }
+
+    footer {
+      position: relative; z-index: 1;
+      text-align: center; padding: 40px 24px 48px;
+    }
+    .footer-brand { font-size: 14px; font-weight: 300; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; }
+    .footer-brand strong { font-weight: 600; color: var(--silver-dark); }
+
+    @media (max-width: 600px) {
+      header { padding: 20px 24px; }
+      h1 { font-size: 28px; }
+      main { padding: 48px 20px 40px; }
+      .input-wrapper { flex-direction: column; }
+      .btn-generate { padding: 14px; }
+      .logo-fin, .logo-silver { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <span class="logo-fin">Fin</span>
+      <span class="logo-silver">Silver</span>
+    </div>
+  </header>
+
+  <main>
+    <h1>Generador de <span>QR</span></h1>
+    <p class="subtitle">Pegá tu URL y obtené un código QR al instante</p>
+
+    <div class="input-group">
+      <label>URL de destino</label>
+      <div class="input-wrapper">
+        <input type="text" id="urlInput" placeholder="https://tusitio.com" autocomplete="off" />
+        <button class="btn-generate" id="btnGenerate">Generar</button>
+      </div>
+    </div>
+
+    <div class="qr-result" id="qrResult">
+      <div class="qr-container">
+        <canvas id="qrCanvas"></canvas>
+      </div>
+      <p class="qr-url-display" id="qrUrlDisplay"></p>
+      <button class="btn-download" id="btnDownload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Descargar PNG
+      </button>
+    </div>
+  </main>
+
+  <footer>
+    <p class="footer-brand">Grupo <strong>Fin-Silver</strong></p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script>
+    const urlInput = document.getElementById('urlInput');
+    const btnGenerate = document.getElementById('btnGenerate');
+    const qrResult = document.getElementById('qrResult');
+    const qrCanvas = document.getElementById('qrCanvas');
+    const qrUrlDisplay = document.getElementById('qrUrlDisplay');
+    const btnDownload = document.getElementById('btnDownload');
+    let qr = null;
+
+    function generateQR() {
+      let url = urlInput.value.trim();
+      if (!url) { urlInput.focus(); return; }
+      if (!/^https?:\/\//i.test(url)) { url = 'https://' + url; urlInput.value = url; }
+      qrResult.classList.remove('visible');
+      void qrResult.offsetWidth;
+      qr = new QRious({ element: qrCanvas, value: url, size: 240, foreground: '#2a2a2a', background: '#ffffff', level: 'H' });
+      qrUrlDisplay.textContent = url;
+      qrResult.classList.add('visible');
+    }
+
+    function downloadQR() {
+      if (!qr) return;
+      const link = document.createElement('a');
+      link.download = 'qr-finsilver.png';
+      link.href = qrCanvas.toDataURL('image/png');
+      link.click();
+    }
+
+    btnGenerate.addEventListener('click', generateQR);
+    urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') generateQR(); });
+    btnDownload.addEventListener('click', downloadQR);
+  </script>
+</body>
+</html>
